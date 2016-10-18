@@ -1,0 +1,8 @@
+Name,Class,Lv,Exp,CHP,HP,Str,Mag,Skl,Spd,Luck,Def,Res,Con,Mov,Affinity,I1,I2,I3,I4,I5,I6,I7,I8,Usable,GHP,GStr,GMag,GSkl,GSpd,GLuck,GDef,GRes
+Moira,Hunter,2,--,25,25,5,0,10,7,5,6,6,6,5,Thunder,Hunting Bow,,,,,,,,Bows D (38),,,,,,,,
+Clio,Thief,3,--,24,24,2,6,11,11,7,6,5,5,5,Dark,Blaze,,,,,,,,Anima D (40),,,,,,,,
+Annabelle,Cleric,2,--,21,21,0,4,3,9,10,3,4,5,7,Wind,Fix,,,,,,,,Staves D (45),,,,,,,,
+Phillip,Cavalier,3,--,30,30,9,0,8,7,5,6,1,8,6,Thunder,Iron Sword,Iron Bow,,,,,,,Swords E (22) Bows E (18),,,,,,,,
+Douglas,Lancer,3,--,28,28,8,0,7,9,5,9,3,7,5,Fire,Iron Lance,,,,,,,,Lance D (38),,,,,,,,
+Lucian,Pegasus Knight,2,--,24,24,5,2,6,8,7,5,3,8,7,Light,Sky Lance,,,,,,,,Lance D (39),,,,,,,,
+Ignatius,Monk,1,--,22,22,2,5,4,5,5,3,5,5,5,Ice,Flash,,,,,,,,Light D (36),,,,,,,,
