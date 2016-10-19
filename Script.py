@@ -185,8 +185,9 @@ def fight(command):
     dcrt = defender.dcrt - attacker.devd
     ddouble = defender.das - attacker.das >= 4
 
-    data = [['Name', 'Damage', 'To Hit', 'Crit Chance', 'Double?'], [attacker.Name, adamage, aaccuracy, acrt, adouble],
-            [defender.Name, ddamage, daccuracy, dcrt, ddouble]]
+    data = [['Name', "Hp", 'Damage', 'To Hit', 'Crit Chance', 'Double?'],
+            [attacker.Name, repr(attacker.CHP)+'/'+repr(attacker.HP), adamage, aaccuracy, acrt, adouble],
+            [defender.Name, repr(defender.CHP)+'/'+repr(defender.HP), ddamage, daccuracy, dcrt, ddouble]]
     col_width = 10  # max(len(word) for row in data for word in row) + 2  # padding
     for row in data:
         print "".join(str(word).ljust(col_width) for word in row)
@@ -196,24 +197,22 @@ def fight(command):
         if randint(1, 100) < daccuracy:
             attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
             if type(defender) is Unit:
-                defender.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                bonus = 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
                                      * (3 if attacker.CHP > 0 else 9)
+                defender.Exp += bonus
+                print "{0) gained {1} Exp".format(defender.Name, bonus)
         if randint(1, 100) < aaccuracy:
             defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
             if type(attacker) is Unit:
-                attacker.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                bonus = 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
                                      * (3 if defender.CHP > 0 else 9)
+                attacker.Exp += bonus
+                print "{0} gained {1} Exp".format(attacker.Name, bonus)
 
         if ddouble and randint(1, 100) < daccuracy:
                 attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
-                if type(defender) is Unit:
-                    defender.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
-                                     * (3 if attacker.CHP > 0 else 9)
         if adouble and randint(1, 100) < aaccuracy:
                 defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
-                if type(attacker) is Unit:
-                    attacker.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
-                                     * (3 if defender.CHP > 0 else 9)
 
 
 def uses(command):
