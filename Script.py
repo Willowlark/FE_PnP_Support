@@ -67,13 +67,13 @@ class Unit(CsvImport):
 
     def levelUp(self):
 
-        # if self.Exp < 100:
-        #     print "Not enough exp to level up!"
-        #     return -1
-        #
-        # if self.Lv == 20:
-        #     print "Max level reached."
-        #     return -2
+        if self.Exp < 100:
+            print "Not enough exp to level up!"
+            return -1
+
+        if self.Lv == 20:
+            print "Max level reached."
+            return -2
 
         self.Lv += 1
         self.Exp = 0
@@ -193,13 +193,27 @@ def fight(command):
     prompt = raw_input("Make the attack?> ")
     if prompt == 'y' or prompt == 'yes':
 
-        if randint(1, 100) < daccuracy: attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
-        if randint(1, 100) < aaccuracy: defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
-        if ddouble:
-            if randint(1, 100) < daccuracy: attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
-        if adouble:
-            if randint(1, 100) < aaccuracy: defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
-        #do exp.
+        if randint(1, 100) < daccuracy:
+            attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
+            if type(defender) is Unit:
+                defender.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                                     * (3 if attacker.CHP > 0 else 9)
+        if randint(1, 100) < aaccuracy:
+            defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
+            if type(attacker) is Unit:
+                attacker.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                                     * (3 if defender.CHP > 0 else 9)
+
+        if ddouble and randint(1, 100) < daccuracy:
+                attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
+                if type(defender) is Unit:
+                    defender.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                                     * (3 if attacker.CHP > 0 else 9)
+        if adouble and randint(1, 100) < aaccuracy:
+                defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
+                if type(attacker) is Unit:
+                    attacker.Exp += 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                                     * (3 if defender.CHP > 0 else 9)
 
 
 def uses(command):
@@ -232,7 +246,7 @@ def load(command):
 def save(command):
     global scope
 
-    #find type
+    # find type
     units, items, enemies, punit, index = _flags(command)
     filepath = " ".join(command[index:])+'.csv'
 
@@ -241,7 +255,7 @@ def save(command):
 
     uheader = "Name","Class","Lv","Exp","HP","Str","Mag","Skl","Spd","Luck","Def","Res","Con","Mov","Affinity",\
                   "I1","I2","I3","I4","I5","I6","I7","I8","Usable", "GHP", 'GStr', 'GMag', 'GSkl', 'GSpd', 'GLuck', \
-                    'GDef', 'GRes'
+                  'GDef', 'GRes'
     iheader = "Name","Mt","Hit","Crt","Weight","Range","Rank","Effect","Physical"
     puheader = "Name","Class","Lv","CHP","HP","Def","Res","Weapon","Atk","Hit","Avd","Crt","Evd","AS","Mov"
     if units or enemies: writer.writerow(uheader)
@@ -273,16 +287,21 @@ def main():
                 uses(command)
             elif 'level' in command:
                 scope[" ".join(command[1:])].levelUp()
+
             elif 'load' in command:
                 load(command)
             elif 'save' in command:
                 save(command)
+
             elif 'show' in command:
                 show(command)
             elif 'help' in command:
-                print "Commands are 'X fights Y', 'X uses Z', 'load type filename', 'save type filename', 'show type' & help."
+                print "Commands are 'X fights Y', 'X uses Z', 'level X', \n" \
+                 "'load type filename', 'save type filename', 'show type' & help."
+                print ''
                 print "type can be unit (full stated characters), punit (partial units),  \n" \
                       "enemy (different group of units), and item (weapons)"
+                print ''
                 print 'X represents a unit, punit, or enemy type. Y represents the same. Z represents a weapon.'
             else:
                 if " ".join(command) in scope:
@@ -300,7 +319,7 @@ def _roundup(x):
 
 
 def _actcheck(units,items,enemies,punits,value=None):
-    #Used in load, save, show.
+    # Used in load, save, show.
     if (type(value) is Unit or value is None) and units: return 1
     if (type(value) is Item or value is None) and items: return 2
     if (type(value) is Enemy or value is None) and enemies: return 3
@@ -309,7 +328,7 @@ def _actcheck(units,items,enemies,punits,value=None):
 
 
 def _flags(command):
-    #used in load, save, show.
+    # used in load, save, show.
     units = items = enemies = punits = 0
     index = -1
     if 'unit' in command:
