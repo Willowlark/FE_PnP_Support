@@ -2,7 +2,7 @@ import csv
 from random import randint
 
 global scope
-
+scope = {}
 
 class CsvImport(object):
     def __init__(self, d):
@@ -273,44 +273,42 @@ def show(command):
         value = scope[key]
         if _actcheck(units,items,enemies,punit,value): print value.Name, value
 
-
-def main():
+def _processcmd(command):
     global scope
-    while 1:
-        try:
-            command = raw_input("> ")
-            command = command.split()
-            if 'fights' in command:
-                fight(command)
-            elif 'uses' in command:
-                uses(command)
-            elif 'level' in command:
-                scope[" ".join(command[1:])].levelUp()
+    command = command.split()
 
-            elif 'load' in command:
-                load(command)
-            elif 'save' in command:
-                save(command)
+    try:
+        if 'fights' in command:
+            fight(command)
+        elif 'uses' in command:
+            uses(command)
+        elif 'level' in command:
+            scope[" ".join(command[1:])].levelUp()
 
-            elif 'show' in command:
-                show(command)
-            elif 'help' in command:
-                print "Commands are 'X fights Y', 'X uses Z', 'level X', \n" \
-                 "'load type filename', 'save type filename', 'show type' & help."
-                print ''
-                print "type can be unit (full stated characters), punit (partial units),  \n" \
-                      "enemy (different group of units), and item (weapons)"
-                print ''
-                print 'X represents a unit, punit, or enemy type. Y represents the same. Z represents a weapon.'
+        elif 'load' in command:
+            load(command)
+        elif 'save' in command:
+            save(command)
+
+        elif 'show' in command:
+            show(command)
+        elif 'help' in command:
+            print "Commands are 'X fights Y', 'X uses Z', 'level X', \n" \
+             "'load type filename', 'save type filename', 'show type' & help."
+            print ''
+            print "type can be unit (full stated characters), punit (partial units),  \n" \
+                  "enemy (different group of units), and item (weapons)"
+            print ''
+            print 'X represents a unit, punit, or enemy type. Y represents the same. Z represents a weapon.'
+        else:
+            if " ".join(command) in scope:
+                print scope[' '.join(command)]
             else:
-                if " ".join(command) in scope:
-                    print scope[' '.join(command)]
-                else:
-                    print "Unrecognized command and nothing with that name exists."
-        except KeyError:
-            print "A name was spelled incorrectly. Capitalization matters."
-        except IOError:
-            print "A bad file name was used."
+                print "Unrecognized command and nothing with that name exists."
+    except KeyError:
+        print "A name was spelled incorrectly. Capitalization matters."
+    except IOError:
+        print "A bad file name was used."
 
 
 def _roundup(x):
@@ -345,6 +343,6 @@ def _flags(command):
     return units, items, enemies, punits, index
 
 if __name__ == "__main__":
-    global scope
-    scope = {}
-    main()
+    while 1:
+        command = raw_input("> ")
+        _processcmd(command)
