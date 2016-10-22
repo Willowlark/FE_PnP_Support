@@ -68,11 +68,11 @@ class Unit(CsvImport):
     def levelUp(self):
 
         if self.Exp < 100:
-            print "Not enough exp to level up!"
+            print "ERROR: Not enough exp to level up!"
             return -1
 
         if self.Lv == 20:
-            print "Max level reached."
+            print "ERROR: Max level reached."
             return -2
 
         self.Lv += 1
@@ -122,6 +122,7 @@ class PartUnit(CsvImport):
     def tryEquip(self):
         it = Item({})
         it.Physical = 'TRUE'
+        it.Range = 1 if not hasattr(self, 'Range') else self.Range
         self.using = it
         # global scope
         # if self.Weapon in scope:
@@ -161,8 +162,38 @@ class Item(CsvImport):
         ret = [self.Name, self.Mt, self.Hit, self.Crt, self.Weight, str(self.Range), self.Rank, self.Effect, self.Physical]
         return ret
 
+def rangedfight(command):
+    command[command.index('shoots')] = 'fights'
+    fight(command, 1)
 
-def fight(command):
+def heal(command):
+    global scope
+    index = command.index('heals')
+    attackerkey = " ".join(command[:index])
+    defenderkey = " ".join(command[index+1:])
+    attacker = scope[attackerkey]
+    defender = scope[defenderkey]
+
+    if attacker.using is None or defender.using is None:
+        print "ERROR: Someone isn't equipped"
+        return -1
+
+    healamount = attacker.using.Mt + attacker.Mag
+
+    data = [['Name', "Hp", 'Healing', 'To Hit', 'Crit Chance', 'Double?'],
+            [attacker.Name, repr(attacker.CHP)+'/'+repr(attacker.HP), healamount, 100, 0, 0],
+            [defender.Name, repr(defender.CHP)+'/'+repr(defender.HP), 0, 0, 0, 0]]
+    col_width = 10  # max(len(word) for row in data for word in row) + 2  # padding
+    for row in data:
+        print "".join(str(word).ljust(col_width) for word in row)
+    prompt = raw_input("Confirm the healing?> ")
+    if prompt == 'y' or prompt == 'yes':
+        defender.CHP += healamount
+        if defender.CHP > defender.HP: defender.CHP = defender.HP
+        attacker.Exp += 10
+        print "{0} gained {1} Exp".format(attacker.Name, 10)
+
+def fight(command, ranged=None):
     global scope
     index = command.index('fights')
     attackerkey = " ".join(command[:index])
@@ -171,7 +202,7 @@ def fight(command):
     defender = scope[defenderkey]
 
     if attacker.using is None or defender.using is None:
-        print "Someone isn't equipped"
+        print "ERROR: Someone isn't equipped"
         return -1
 
     # Calculate combat results
@@ -179,40 +210,49 @@ def fight(command):
     aaccuracy = attacker.dhit - defender.davd
     acrt = attacker.dcrt - defender.devd
     adouble = attacker.das - defender.das >= 4
+    astats = [adamage, aaccuracy, acrt, adouble]
+
+    if ranged and attacker.using.Range == 1:
+        print "ERROR: The attacker does not have a ranged weapon. "
+        return -1
 
     ddamage = defender.dattack - attacker.Def if attacker.using.Physical == 'TRUE' else attacker.Res
     daccuracy = defender.dhit - attacker.davd
     dcrt = defender.dcrt - attacker.devd
     ddouble = defender.das - attacker.das >= 4
+    dstats = [ddamage, daccuracy, dcrt, ddouble]
 
     data = [['Name', "Hp", 'Damage', 'To Hit', 'Crit Chance', 'Double?'],
-            [attacker.Name, repr(attacker.CHP)+'/'+repr(attacker.HP), adamage, aaccuracy, acrt, adouble],
-            [defender.Name, repr(defender.CHP)+'/'+repr(defender.HP), ddamage, daccuracy, dcrt, ddouble]]
+            [attacker.Name, repr(attacker.CHP)+'/'+repr(attacker.HP)] + astats,
+            [defender.Name, repr(defender.CHP)+'/'+repr(defender.HP)] + dstats]
     col_width = 10  # max(len(word) for row in data for word in row) + 2  # padding
     for row in data:
         print "".join(str(word).ljust(col_width) for word in row)
     prompt = raw_input("Make the attack?> ")
     if prompt == 'y' or prompt == 'yes':
 
-        if randint(1, 100) < daccuracy:
-            attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
-            if type(defender) is Unit:
-                bonus = 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
-                                     * (3 if attacker.CHP > 0 else 9)
-                defender.Exp += bonus
-                print "{0) gained {1} Exp".format(defender.Name, bonus)
-        if randint(1, 100) < aaccuracy:
-            defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
-            if type(attacker) is Unit:
-                bonus = 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
-                                     * (3 if defender.CHP > 0 else 9)
-                attacker.Exp += bonus
-                print "{0} gained {1} Exp".format(attacker.Name, bonus)
+        def combatCalc(attacker, defender, astats, exp=True):
+            adamage, aaccuracy, acrt, adouble = astats
+            if randint(1, 100) < aaccuracy:
+                damresult = adamage *2 if randint(1,100) < acrt else adamage
+                defender.CHP -= damresult
+                print "{0} does {1} damage to {2}!".format(attacker.Name, damresult, defender.Name)
 
-        if ddouble and randint(1, 100) < daccuracy:
-                attacker.CHP -= ddamage *2 if randint(1,100) < dcrt else ddamage
-        if adouble and randint(1, 100) < aaccuracy:
-                defender.CHP -= adamage *2 if randint(1,100) < acrt else adamage
+                if type(attacker) is Unit and exp:
+                    bonus = 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
+                                         * (3 if defender.CHP > 0 else 9)
+                    attacker.Exp += bonus
+                    print "{0} gained {1} Exp".format(attacker.Name, bonus)
+            else:
+                print "{0} missed {1}.".format(attacker.Name, defender.Name)
+
+        combatCalc(attacker, defender, astats)
+        if not ranged or (ranged and defender.using.Range >= 2): combatCalc(defender, attacker, dstats)
+
+        if adouble: combatCalc(attacker, defender, astats, False)
+        if ddouble:
+            if not ranged or (ranged and defender.using.Range >= 2): combatCalc(defender, attacker, dstats, False)
+
 
 
 def uses(command):
@@ -239,7 +279,7 @@ def load(command):
             elif loadtype is 2: scope[row["Name"]] = Item(row)
             elif loadtype is 3: scope[row["Name"]] = Enemy(row)
             elif loadtype is 4: scope[row["Name"]] = PartUnit(row)
-            else: print 'Error'
+            else: print 'ERROR: A line was not loaded into an object!'
 
 
 def save(command):
