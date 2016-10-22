@@ -3,6 +3,7 @@ from random import randint
 
 global scope
 scope = {}
+socket_interface = None
 
 class CsvImport(object):
     def __init__(self, d):
@@ -63,7 +64,7 @@ class Unit(CsvImport):
             self.das = self.Spd
 
         else:
-            print "Has nothing to use."
+            _pprint("Has nothing to use.")
 
     def levelUp(self):
 
@@ -86,7 +87,7 @@ class Unit(CsvImport):
                 if r < value:
                     self.__setattr__(attr[1:], self.__getattribute__(attr[1:])+bonus)
                     if attr[1:] == "HP": self.CHP += bonus
-                    print "{0} has increased by {1}!".format(attr[1:], bonus)
+                    _pprint("{0} has increased by {1}!".format(attr[1:], bonus))
 
     def writeString(self):
         ret = [self.Name, self.Class, self.Lv, self.Exp, self.CHP, self.HP, self.Str, self.Mag, self.Skl, self.Spd,
@@ -131,7 +132,7 @@ class PartUnit(CsvImport):
     def equipped(self, item=None):
         global scope
         if item is None:
-            print self.using
+            _pprint(self.using)
         else:
             if item in scope:
                 self.using = scope[item]
@@ -175,7 +176,7 @@ def heal(command):
     defender = scope[defenderkey]
 
     if attacker.using is None or defender.using is None:
-        print "ERROR: Someone isn't equipped"
+        _pprint("ERROR: Someone isn't equipped")
         return -1
 
     healamount = attacker.using.Mt + attacker.Mag
@@ -185,13 +186,13 @@ def heal(command):
             [defender.Name, repr(defender.CHP)+'/'+repr(defender.HP), 0, 0, 0, 0]]
     col_width = 10  # max(len(word) for row in data for word in row) + 2  # padding
     for row in data:
-        print "".join(str(word).ljust(col_width) for word in row)
+        _pprint("".join(str(word).ljust(col_width) for word in row))
     prompt = raw_input("Confirm the healing?> ")
     if prompt == 'y' or prompt == 'yes':
         defender.CHP += healamount
         if defender.CHP > defender.HP: defender.CHP = defender.HP
         attacker.Exp += 10
-        print "{0} gained {1} Exp".format(attacker.Name, 10)
+        _pprint("{0} gained {1} Exp".format(attacker.Name, 10))
 
 def fight(command, ranged=None):
     global scope
@@ -202,7 +203,7 @@ def fight(command, ranged=None):
     defender = scope[defenderkey]
 
     if attacker.using is None or defender.using is None:
-        print "ERROR: Someone isn't equipped"
+        _pprint("ERROR: Someone isn't equipped")
         return -1
 
     # Calculate combat results
@@ -213,7 +214,7 @@ def fight(command, ranged=None):
     astats = [adamage, aaccuracy, acrt, adouble]
 
     if ranged and attacker.using.Range == 1:
-        print "ERROR: The attacker does not have a ranged weapon. "
+        _pprint("ERROR: The attacker does not have a ranged weapon. ")
         return -1
 
     ddamage = defender.dattack - attacker.Def if attacker.using.Physical == 'TRUE' else attacker.Res
@@ -227,24 +228,30 @@ def fight(command, ranged=None):
             [defender.Name, repr(defender.CHP)+'/'+repr(defender.HP)] + dstats]
     col_width = 10  # max(len(word) for row in data for word in row) + 2  # padding
     for row in data:
-        print "".join(str(word).ljust(col_width) for word in row)
-    prompt = raw_input("Make the attack?> ")
-    if prompt == 'y' or prompt == 'yes':
+        _pprint("".join(str(word).ljust(col_width) for word in row))
 
+    if socket_interface is None:
+        prompt = raw_input("Make the attack?> ")
+        if prompt == 'y' or prompt == 'yes': prompt = True
+        else: prompt = False
+    else:
+        prompt = socket_interface.yn_response()
+
+    if prompt:
         def combatCalc(attacker, defender, astats, exp=True):
             adamage, aaccuracy, acrt, adouble = astats
             if randint(1, 100) < aaccuracy:
                 damresult = adamage *2 if randint(1,100) < acrt else adamage
                 defender.CHP -= damresult
-                print "{0} does {1} damage to {2}!".format(attacker.Name, damresult, defender.Name)
+                _pprint("{0} does {1} damage to {2}!".format(attacker.Name, damresult, defender.Name))
 
                 if type(attacker) is Unit and exp:
                     bonus = 10 + (max(defender.Lv, attacker.Lv) - min(defender.Lv, attacker.Lv)) \
                                          * (3 if defender.CHP > 0 else 9)
                     attacker.Exp += bonus
-                    print "{0} gained {1} Exp".format(attacker.Name, bonus)
+                    _pprint("{0} gained {1} Exp".format(attacker.Name, bonus))
             else:
-                print "{0} missed {1}.".format(attacker.Name, defender.Name)
+                _pprint("{0} missed {1}.".format(attacker.Name, defender.Name))
 
         combatCalc(attacker, defender, astats)
         if not ranged or (ranged and defender.using.Range >= 2): combatCalc(defender, attacker, dstats)
@@ -279,7 +286,7 @@ def load(command):
             elif loadtype is 2: scope[row["Name"]] = Item(row)
             elif loadtype is 3: scope[row["Name"]] = Enemy(row)
             elif loadtype is 4: scope[row["Name"]] = PartUnit(row)
-            else: print 'ERROR: A line was not loaded into an object!'
+            else: _pprint('ERROR: A line was not loaded into an object!')
 
 
 def save(command):
@@ -311,7 +318,7 @@ def show(command):
     units, items, enemies, punit, _ = _flags(command)
     for key in scope:
         value = scope[key]
-        if _actcheck(units,items,enemies,punit,value): print value.Name, value
+        if _actcheck(units,items,enemies,punit,value): _pprint(value.Name, value)
 
 def _processcmd(command):
     global scope
@@ -333,22 +340,22 @@ def _processcmd(command):
         elif 'show' in command:
             show(command)
         elif 'help' in command:
-            print "Commands are 'X fights Y', 'X uses Z', 'level X', \n" \
-             "'load type filename', 'save type filename', 'show type' & help."
-            print ''
-            print "type can be unit (full stated characters), punit (partial units),  \n" \
-                  "enemy (different group of units), and item (weapons)"
-            print ''
-            print 'X represents a unit, punit, or enemy type. Y represents the same. Z represents a weapon.'
+            _pprint("Commands are 'X fights Y', 'X uses Z', 'level X', \n" \
+             "'load type filename', 'save type filename', 'show type' & help.")
+            _pprint('')
+            _pprint("type can be unit (full stated characters), punit (partial units),  \n" \
+                  "enemy (different group of units), and item (weapons)")
+            _pprint('')
+            _pprint(('X represents a unit, punit, or enemy type. Y represents the same. Z represents a weapon.'))
         else:
             if " ".join(command) in scope:
-                print scope[' '.join(command)]
+                _pprint(scope[' '.join(command)])
             else:
-                print "Unrecognized command and nothing with that name exists."
+                _pprint("Unrecognized command and nothing with that name exists.")
     except KeyError:
-        print "A name was spelled incorrectly. Capitalization matters."
+        _pprint("A name was spelled incorrectly. Capitalization matters.")
     except IOError:
-        print "A bad file name was used."
+        _pprint("A bad file name was used.")
 
 
 def _roundup(x):
@@ -381,6 +388,13 @@ def _flags(command):
         punits = 1
         index = command.index('punit')+1
     return units, items, enemies, punits, index
+
+def _pprint(text):
+    global socket_interface
+    if socket_interface is not None:
+        socket_interface.postAll(text)
+    else:
+        print text
 
 if __name__ == "__main__":
     while 1:
