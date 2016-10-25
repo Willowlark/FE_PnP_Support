@@ -40,10 +40,11 @@ def processMessage(message):
         else:
             s.sendall('PRIVMSG ' + message.nick + ' :This is not one of my commands.\r\n')
 
-    elif message.type == 'msg' and message.split_msg[0] == 'fe': #public command to bot.
-        Script._processcmd(message.message[3:-2])
+    elif message.type == 'msg' and message.split_msg[0] == 'Nowi,': #public command to bot.
+        Script._processcmd(message.message[5:-2])
+        print "Command executing: ", message.message[5:-2]
         # Script._processcmd(message.message[:-2])
-        postToChannel(' ')
+        slashmeToChannel('Done!')
     elif message.type == "PING":
         s.sendall('PONG ' + message.target+'\r\n')
     if message.type == 'nil': #place holder for other message type handling
@@ -53,6 +54,12 @@ def postToChannel(message):
     lines = str(message).split('\n')
     for mess in lines:
         s.sendall("PRIVMSG #" + channel + " :" + mess +"\r\n")
+
+
+def slashmeToChannel(message):
+    lines = str(message).split('\n')
+    for mess in lines:
+        s.sendall("PRIVMSG #" + channel + " :\001ACTION " + mess +"\001\r\n")
 
 def listen_for_response():
     while 1:
@@ -68,6 +75,9 @@ class Interface(object):
 
     def postAll(self, text):
         postToChannel(text)
+
+    def postmeAll(self,text):
+        slashmeToChannel(text)
 
     def yn_response(self):
         return listen_for_response()
@@ -97,6 +107,8 @@ s.sendall('nick ' + nick + '\r\n')
 s.sendall('user ' + nick +  ' 8  *' + ' : ' + "Paw's bot\r\n")
 # s.sendall("PRIVMSG nickserv " +" :identify password\r\n")
 s.sendall('JOIN #' + channel + '\r\n')
+slashmeToChannel("NOWI: Numerical Operator With Intelligence : Now Online.")
+slashmeToChannel("Hello! Ready and Waiting!")
 Script.socket_interface = Interface()
 
 #program loop

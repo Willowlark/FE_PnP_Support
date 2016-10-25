@@ -30,10 +30,10 @@ class Unit(CsvImport):
         self.tryEquip()
 
     def __str__(self):
-        if self.using is not None: output = """{0}: {1}/{2}\nClass: {3} {4} ({5})\nUsing: {6}.
-        """.format(self.Name, self.CHP, self.HP, self.Class, self.Lv, self.Exp, self.using.Name)
-        else: output = """{0}: {1}/{2}\nClass: {3} {4} ({5}).
-        """.format(self.Name, self.CHP, self.HP, self.Class, self.Lv, self.Exp)
+        if self.using is not None: output = """{0}: {1}/{2}\nClass: {3} {4} ({5})\nUsing: {6}.""".format(
+                self.Name, self.CHP, self.HP, self.Class, self.Lv, self.Exp, self.using.Name)
+        else: output = """{0}: {1}/{2}\nClass: {3} {4} ({5}).""".format(
+                self.Name, self.CHP, self.HP, self.Class, self.Lv, self.Exp)
         return output
 
     def __repr__(self):
@@ -81,7 +81,7 @@ class Unit(CsvImport):
 
         # Horrible not a good idea code yay!
         for attr, value in self.__dict__.iteritems():
-            if attr in ["GHP", 'GStr', 'GMag', 'GSkl', 'GSpd', 'GLuck','GDef', 'GRes']:
+            if attr in ["GHP", 'GStr', 'GMag', 'GSkl', 'GSpd', 'GLuck','GDef', 'GRes'] and value > 0:
                 r = randint(1, _roundup(value))
                 bonus = r/ 100 + 1
                 if r < value:
@@ -113,8 +113,7 @@ class PartUnit(CsvImport):
         self.tryEquip()
 
     def __str__(self):
-        output = """{0}: {1}/{2}\nClass: {3} {4}.
-        """.format(self.Name, self.CHP, self.HP, self.Class, self.Lv)
+        output = """{0}: {1}/{2}\nClass: {3} {4}.""".format(self.Name, self.CHP, self.HP, self.Class, self.Lv)
         return output
 
     def __repr__(self):
@@ -151,8 +150,8 @@ class Enemy(Unit):
 class Item(CsvImport):
 
     def __str__(self):
-        output = """{0}\nMt: {1} Crit: {2} Rng: {3}\n{4}
-        """.format(self.Name, self.Mt, self.Crt, self.Range, self.Effect)
+        output = """{0}\nMt: {1} Crit: {2} Rng: {3}\n{4}""".format(
+                self.Name, self.Mt, self.Crt, self.Range, self.Effect)
         return output
 
     def __repr__(self):
@@ -187,8 +186,16 @@ def heal(command):
     col_width = 10  # max(len(word) for row in data for word in row) + 2  # padding
     for row in data:
         _pprint("".join(str(word).ljust(col_width) for word in row))
-    prompt = raw_input("Confirm the healing?> ")
-    if prompt == 'y' or prompt == 'yes':
+
+    if socket_interface is None:
+        prompt = raw_input("Confirm the Healing> ")
+        if prompt == 'y' or prompt == 'yes': prompt = True
+        else: prompt = False
+    else:
+        _pprint("That's so nice! Are they really doing that?", 1)
+        prompt = socket_interface.yn_response()
+
+    if prompt:
         defender.CHP += healamount
         if defender.CHP > defender.HP: defender.CHP = defender.HP
         attacker.Exp += 10
@@ -235,6 +242,7 @@ def fight(command, ranged=None):
         if prompt == 'y' or prompt == 'yes': prompt = True
         else: prompt = False
     else:
+        _pprint("Are they going to do it?!", 1)
         prompt = socket_interface.yn_response()
 
     if prompt:
@@ -318,7 +326,7 @@ def show(command):
     units, items, enemies, punit, _ = _flags(command)
     for key in scope:
         value = scope[key]
-        if _actcheck(units,items,enemies,punit,value): _pprint(value.Name, value)
+        if _actcheck(units,items,enemies,punit,value): _pprint(value.Name)
 
 def _processcmd(command):
     global scope
@@ -331,11 +339,17 @@ def _processcmd(command):
             uses(command)
         elif 'level' in command:
             scope[" ".join(command[1:])].levelUp()
+        elif 'heals' in command:
+            heal(command)
+        elif 'shoots' in command:
+            rangedfight(command)
 
         elif 'load' in command:
             load(command)
         elif 'save' in command:
             save(command)
+        elif 'clear' in command:
+            scope = {}
 
         elif 'show' in command:
             show(command)
@@ -389,10 +403,11 @@ def _flags(command):
         index = command.index('punit')+1
     return units, items, enemies, punits, index
 
-def _pprint(text):
+def _pprint(text, slash=0):
     global socket_interface
     if socket_interface is not None:
-        socket_interface.postAll(text)
+        if not slash: socket_interface.postAll(text)
+        else: socket_interface.postmeAll(text)
     else:
         print text
 
