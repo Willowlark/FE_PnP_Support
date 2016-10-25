@@ -42,14 +42,17 @@ def processMessage(message):
 
     elif message.type == 'msg' and message.split_msg[0] == 'fe': #public command to bot.
         Script._processcmd(message.message[3:-2])
-        postToChannel('> ')
+        # Script._processcmd(message.message[:-2])
+        postToChannel(' ')
     elif message.type == "PING":
         s.sendall('PONG ' + message.target+'\r\n')
     if message.type == 'nil': #place holder for other message type handling
         pass
 
 def postToChannel(message):
-     s.sendall("PRIVMSG #" + channel + " :" + message +"\r\n")
+    lines = str(message).split('\n')
+    for mess in lines:
+        s.sendall("PRIVMSG #" + channel + " :" + mess +"\r\n")
 
 def listen_for_response():
     while 1:
@@ -89,11 +92,11 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((server, 6667))
 
 #register with the server and join the channel
-s.sendall('pass secret\r\n')
+s.sendall('pass password\r\n')
 s.sendall('nick ' + nick + '\r\n')
 s.sendall('user ' + nick +  ' 8  *' + ' : ' + "Paw's bot\r\n")
+# s.sendall("PRIVMSG nickserv " +" :identify password\r\n")
 s.sendall('JOIN #' + channel + '\r\n')
-
 Script.socket_interface = Interface()
 
 #program loop
